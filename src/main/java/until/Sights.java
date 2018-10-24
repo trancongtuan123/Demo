@@ -82,13 +82,10 @@ public class Sights {
 		try {
 			JAXBContext context = JAXBContext.newInstance(Sights.class);
 			Marshaller marshaller = context.createMarshaller();
-
 			marshaller.setProperty(Marshaller.JAXB_FORMATTED_OUTPUT, Boolean.TRUE);
-
-			marshaller.marshal(sights, System.out);
 			marshaller.marshal(sights, new File(url + "/Sights.xml"));
 		} catch (JAXBException e) {
-			LOGGER.warning("fail" + e.getMessage());
+			LOGGER.warning("save fail because file " + e.getMessage());
 		}
 	}
 

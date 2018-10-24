@@ -5,6 +5,20 @@ import com.beust.jcommander.Parameter;
 import until.Bird;
 import until.Sight;
 
+/**
+ * Sever.java
+ * 
+ * Version 1.0
+ * 
+ * 03-10-2018
+ * 
+ * Modification
+ * 
+ * DATE AUTHOR DESCRIPTIONS
+ *  --------------------------------------- 0
+ * 3-10-2018  Tuan, Tran Cong
+ *  Create
+ */
 public class AddBirdOption {
 	@Parameter(names = "-cmd", description = "comand", required = false)
 	String cmd = "";
@@ -40,7 +54,7 @@ public class AddBirdOption {
 		return new Bird(this.name, this.color, this.height, this.weight);
 	}
 	public Sight getSight() {
-		return new Sight(this.local, this.time);
+		return new Sight(this.local, this.time, this.name);
 	}
 
 	public String getName() {

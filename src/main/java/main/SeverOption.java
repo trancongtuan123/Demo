@@ -9,6 +9,7 @@ import java.time.LocalDateTime;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.Timer;
+import java.util.TimerTask;
 import java.util.logging.FileHandler;
 import java.util.logging.Logger;
 import java.util.logging.SimpleFormatter;
@@ -17,11 +18,14 @@ import javax.xml.parsers.ParserConfigurationException;
 import javax.xml.transform.TransformerException;
 import javax.xml.transform.TransformerFactoryConfigurationError;
 
+import com.beust.jcommander.JCommander;
 import com.beust.jcommander.Parameter;
 
 import handler.UserThread;
 import until.Bird;
+import until.Birds;
 import until.Sight;
+import until.Sights;
 import validator.Validateport;
 
 
@@ -44,15 +48,18 @@ public class SeverOption {
 	@Parameter(names = "-port", description = "port", required = false, validateWith = Validateport.class)
 	int port = 3000; // port
 	@Parameter(names = "-data", description = "data", required = false)
-	public String url = "D:/Tuan"; // data
+	public String url = System.getProperty("user.home");
+	
 	@Parameter(names = "-procount", description = "procount", required = false)
 	int procount = 2; // procount
+	public String folder = url;
 	final static Logger LOGGER; // destination for error messages
 	static {
 		LOGGER = Logger.getLogger(SeverOption.class.getName());
 	}
 	private Set<UserThread> userThreads = new HashSet<>();
 	private Set<String> userNames = new HashSet<>();
+	static volatile boolean keepRunning = true; 
 	Bird bird;
 	Sight sight;
 
@@ -67,34 +74,22 @@ public class SeverOption {
 		this.procount = procount;
 	}
 
-	public void execute() {
+	/**
+	 * method excute method create thread when client conection complete handler
+	 * client connection server read or write file auto save
+	 */
+	public void execute(String args[]) {
 		SeverOption severOption = new SeverOption();
+		JCommander.newBuilder().addObject(severOption).build().parse(args);
 		int port = severOption.port;
-		String folder = severOption.url;
 		int maxConnections = severOption.procount;
 		try {
 			port = severOption.port;
 			folder = severOption.url;
 			maxConnections = severOption.procount;
-			System.out.println("Server is listening on port " + port);
+		
 		} catch (ArrayIndexOutOfBoundsException | NumberFormatException e) {
 			LOGGER.info("Command line arguments missing or faulty.  Launching with program defaults.");
-		}
-		try {
-			ReadFile.finFile(folder);
-			Timer timer = new Timer();
-			timer.schedule(new AutoSaveFile(), 0, 60 * 500);
-			Thread.sleep(3000);
-		} catch (ParserConfigurationException e2) {
-			LOGGER.warning("fail" + e2.getMessage());
-		} catch (TransformerException e2) {
-			LOGGER.warning("fail" + e2.getMessage());
-		} catch (IOException e2) {
-			LOGGER.warning("fail" + e2.getMessage());
-		} catch (TransformerFactoryConfigurationError e2) {
-			LOGGER.warning("fail" + e2.getMessage());
-		} catch (InterruptedException e) {
-			LOGGER.warning("fail" + e.getMessage());
 		}
 		boolean createLogFile = false;
 		if (createLogFile) {
@@ -103,10 +98,41 @@ public class SeverOption {
 		String refuseNewConnectionMessage = "The server limit of " + maxConnections
 				+ ((maxConnections == 1) ? " connection" : " connections")
 				+ " has been reached.  Please try again, later.";
-
+		System.out.println("Server is listening on port " + port);
 		try (ServerSocket socketRequestListener = new ServerSocket(port)) {
 			LOGGER.info("Server started on port: " + socketRequestListener.getLocalPort()
 					+ ".  Maximum simultaneous users: " + maxConnections);
+		
+			ReadFile.finFile(folder);
+			Timer timer = new Timer();
+			Thread.sleep(3000);
+			timer.schedule(new TimerTask() {
+				
+				@Override
+				public void run() {
+					SeverOption severOption = new SeverOption();
+					severOption.runAutoSaveFile(folder);
+				}
+			},0,60*5000)
+			;
+
+	        Runtime r = Runtime.getRuntime();
+	        r.addShutdownHook(new Thread() {
+	            public void run() {
+	            	Birds.save(folder);
+	        		Sights.addSight(folder);
+	        		System.out.println("data will be saved in: " +folder);
+	            }
+	        });
+	 
+	        System.out.println("Now main sleeping... press ctrl+c to exit");
+	        try {
+	            Thread.sleep(3000);
+	        } catch (Exception e) {
+	        e.printStackTrace();
+	}
+		 
+		   	
 			while (true) {
 				// the following call blocks until a connection is made
 				Socket socket = socketRequestListener.accept();
@@ -124,19 +150,23 @@ public class SeverOption {
 					out.println(refuseNewConnectionMessage);
 					out.close();
 					socket.close();
-					LOGGER.warning("SORRY " + remoteMachine 
-							+ ".  Number of current connections: " + numActiveSockets);
+					LOGGER.warning("SORRY " + remoteMachine + ".  Number of current connections: " + numActiveSockets);
 				}
 			}
 		} catch (IOException e) {
-			LOGGER.warning("fail" + e.getMessage());
+			LOGGER.warning("fail : sever is exist ");
+			System.exit(0);
 		} catch (TransformerFactoryConfigurationError e1) {
 			LOGGER.warning("fail" + e1.getMessage());
 		} catch (NullPointerException e) {
 			LOGGER.warning("fail" + e.getMessage());
-		} catch (Exception e) {
+		} catch (ParserConfigurationException e) {
 			LOGGER.warning("fail" + e.getMessage());
-		}
+		} catch (TransformerException e) {
+			LOGGER.warning("fail" + e.getMessage());
+		} catch (InterruptedException e) {
+			LOGGER.warning("fail" + e.getMessage());
+		} 
 	}
 
 	/**
@@ -192,5 +222,13 @@ public class SeverOption {
 		} catch (IOException e) {
 			LOGGER.warning(e.getMessage());
 		}
+	}
+	public String getUrl() {
+		return url;
+	}
+	public void runAutoSaveFile(String url) {
+		System.out.println("auto save file");
+		Birds.save(url);
+		Sights.addSight(url);
 	}
 }

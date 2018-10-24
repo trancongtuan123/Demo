@@ -5,6 +5,20 @@ import java.util.Scanner;
 import commom.StringProcess;
 import until.Bird;
 
+/**
+ * Sever.java
+ * 
+ * Version 1.0
+ * 
+ * 03-10-2018
+ * 
+ * Modification
+ * 
+ * DATE AUTHOR DESCRIPTIONS
+ *  --------------------------------------- 0
+ * 3-10-2018  Tuan, Tran Cong
+ *  Create
+ */
 public class AddBirdsHandler {
 	public static Bird bird() {
 		Bird emp;

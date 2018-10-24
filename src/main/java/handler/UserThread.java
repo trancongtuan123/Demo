@@ -7,6 +7,12 @@ import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.io.PrintWriter;
 import java.net.Socket;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.Date;
 import java.util.logging.Logger;
 
 import com.beust.jcommander.JCommander;
@@ -15,13 +21,23 @@ import commom.AddBirdOption;
 import commom.Enumdemo;
 import main.Client;
 import main.SeverOption;
+import until.Bird;
 import until.Birds;
+import until.Sight;
+import until.Sights;
 
 /**
- * This thread handles connection for each connected client, so the server
- * can handle multiple clients at the same time.
- *
- *
+ * Sever.java
+ * 
+ * Version 1.0
+ * 
+ * 03-10-2018
+ * 
+ * Modification
+ * 
+ * DATE------ AUTHOR ---DESCRIPTIONS
+ *  ---------------------------------------
+ *  03-10-2018 Tuan, Tran Cong Create
  */
 public class UserThread extends Thread {
 	final static Logger LOGGER; // destination for error messages
@@ -38,11 +54,13 @@ public class UserThread extends Thread {
 		this.serverOption = serveroption;
 	}
 
+	public UserThread() {
+	}
+
 	public void run() {
 		try {
 			InputStream input = socket.getInputStream();
 			BufferedReader reader = new BufferedReader(new InputStreamReader(input));
-
 			OutputStream output = socket.getOutputStream();
 			writer = new PrintWriter(output, true);
 
@@ -53,13 +71,10 @@ public class UserThread extends Thread {
 
 			String serverMessage = "New user connected: " + userName;
 			serverOption.broadcast(serverMessage, this);
-
-		
-
 			do {
 				clientMessage = reader.readLine();
 				serverMessage = "[" + userName + "]: " + clientMessage;
-				System.out.println( clientMessage );
+				System.out.println(clientMessage);
 				serverOption.broadcast(serverMessage, this);
 				AddBirdOption bOption = new AddBirdOption();
 				JCommander.newBuilder().addObject(bOption).build().parse(clientMessage.split(" "));
@@ -67,16 +82,28 @@ public class UserThread extends Thread {
 				case addbird:
 					JCommander.newBuilder().addObject(bOption).build().parse(clientMessage.split(" "));
 					AddBirdHandler.execute(bOption);
-					String repo = "complete";
-					writer.println(repo);
-					socket.close();
+					for (int i = 0; i < Birds.birds1.birds.size(); i++) {
+						for (int j = 1 + i; j < Birds.birds1.birds.size(); j++) {
+							if (Birds.birds1.birds.get(i).getName().equals(Birds.birds1.birds.get(j).getName())) {
+								Birds.birds1.birds.remove(j);
+								String repo = "Fail ! Name bird is Duplicate ";
+								writer.println(repo);
+							} else{
+								String repo = "OK ! Add bird complete ";
+								writer.println(repo);
+							}
+						}
+						if(Birds.birds1.birds.size() == 1){
+							String repo = "OK ! Add bird complete ";
+							writer.println(repo);
+						}
+					}
 					break;
 				case addsight:
 					JCommander.newBuilder().addObject(bOption).build().parse(clientMessage.split(" "));
 					AddSightHandler.execute(bOption);
-					String repos = "complete";
-					writer.print(repos);
-					reader.readLine();
+					String repon = "complete";
+					writer.println(repon);
 					socket.close();
 					break;
 				case quit:
@@ -84,17 +111,75 @@ public class UserThread extends Thread {
 					serverOption.removeUser(userName, this);
 					socket.close();
 					serverMessage = userName + " has quitted.";
-					serverOption.broadcast(serverMessage, this);
+					System.exit(0);
 					break;
 				case listbirds:
 					JCommander.newBuilder().addObject(bOption).build().parse(clientMessage.split(" "));
-					Birds birds1 = Birds.readBirds(serverOption.url + "/Birds.xml");
-					birds1.printBirds();
+					writer.println("listbirds");
+					writer.println(Birds.birds1.birds.size());
+					Collections.sort(Birds.birds1.birds, new Comparator<Bird>() {
+						@Override
+						public int compare(Bird o1, Bird o2) {
+							 return o1.getName().compareTo(o2.getName());
+						}
+					});
+					writer.println(String.format("%-20s %-20s %-20s %-20s", "Name", "Color", "Height", "Weight"));
+					for (Bird bird : Birds.birds1.birds) {
+						writer.println(String.format("%-20s %-20s %-20s %-20s", bird.getName(), bird.getColor(),
+								bird.getHeight(), bird.getWeight()));
+					}
+					
 					break;
+				case remove:
+					String client = reader.readLine();
+					int count1 = 0;
+					System.out.println("Client : name bird must be remove : " + client);
+					for (int i = 0; i < Birds.birds1.birds.size(); i++){
+						if(client.equals(Birds.birds1.birds.get(i).getName())){
+							Birds.birds1.birds.remove(i);
+							count1++;
+						}
+					}
+					if(count1 > 0){
+						writer.println("Ok! Bird have been delete complete!");
+					}else{
+						writer.println("Can not delete Bird");
+					}
+					break;
+				case listsights:
+					JCommander.newBuilder().addObject(bOption).build().parse(clientMessage.split(" "));
+					writer.println("listsights");
+					String name = reader.readLine();
+					String dateStar = reader.readLine();
+					String dateEnd = reader.readLine();
+					int count = 0;
+					ArrayList<Sight> list = new ArrayList<>();
+					for (Sight sight : Sights.listSight) {
+						Date datetime = new SimpleDateFormat("dd/mm/yyyy").parse(sight.getTime());
+						Date start = new SimpleDateFormat("dd/mm/yyyy").parse(dateStar);
+						Date end = new SimpleDateFormat("dd/mm/yyyy").parse(dateEnd);
+						if (sight.getName() != null && (sight.getName().matches(".*" + name + ".*"))) {
+							if (datetime.after(start) && datetime.before(end)) {
+								count++;
+							list.add(sight);
+							}
+						}
+					}
+					System.out.println(list.size());
+					writer.println(count);
+					writer.println(String.format("%-20s %-20s ", "Name", "Time"));
+					Collections.sort(list, new HandlerNameSight());
+					Collections.sort(list, new HandlerTimeSights());
+					for (Sight sight : list) {
+						writer.println(String.format("%-20s %-20s", sight.getName() ,sight.getTime()));
+					}
+				
 				default:
 					break;
 				}
-			} while (!clientMessage.equals("bye"));
+			} while (!clientMessage.equals("addbird") || !clientMessage.equals("addsight")
+					|| !clientMessage.equals("quit") || !clientMessage.equals("remove")
+					|| !clientMessage.equals("listbirds") || !clientMessage.equals("listsights"));
 
 			serverOption.removeUser(userName, this);
 			socket.close();
@@ -103,9 +188,14 @@ public class UserThread extends Thread {
 			serverOption.broadcast(serverMessage, this);
 
 		} catch (IOException ex) {
-			System.out.println("Error in UserThread: " + ex.getMessage());
-		} catch (IllegalArgumentException e){
+			System.out.println("Client is close : " + ex.getMessage());
+
+		} catch (IllegalArgumentException e) {
 			LOGGER.warning("input not valid: ");
+			e.printStackTrace();
+		} catch (ParseException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
 		}
 	}
 
@@ -114,9 +204,9 @@ public class UserThread extends Thread {
 	 */
 	void printUsers() {
 		if (serverOption.hasUsers()) {
-			writer.println("Connected users: " + serverOption.getUserNames());
+			writer.println(serverOption.getUserNames());
 		} else {
-			writer.println("No other users connected");
+			writer.println("");
 		}
 	}
 

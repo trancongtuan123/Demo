@@ -107,34 +107,14 @@ public class Birds {
 		return birds1;
 	}
 
-	public static void addBird(String url) throws JAXBException {
-		try {
-			JAXBContext context = JAXBContext.newInstance(Birds.class);
-			Marshaller marshaller = context.createMarshaller();
-
-			marshaller.setProperty(Marshaller.JAXB_FORMATTED_OUTPUT, Boolean.TRUE);
-
-			marshaller.marshal(birds1, System.out);
-
-			marshaller.marshal(birds1, new File(url + "/Birds.xml"));
-		} catch (JAXBException e) {
-			LOGGER.warning("fail" + e.getMessage());
+	 public static void save(String url) {
+			try {
+				JAXBContext context = JAXBContext.newInstance(Birds.class);
+				Marshaller marshaller = context.createMarshaller();
+				marshaller.setProperty(Marshaller.JAXB_FORMATTED_OUTPUT, Boolean.TRUE);
+				marshaller.marshal(birds1, new File(url + "/Birds.xml"));
+			} catch (JAXBException e) {
+				LOGGER.warning("save fail because file " + e.getMessage());
+			}
 		}
-	}
-
-	public static void addBird(Bird bird) {
-		birds1.getBirds().add(bird);
-	}
-	
-	public static void save(String url) {
-		try {
-			JAXBContext context = JAXBContext.newInstance(Birds.class);
-			Marshaller marshaller = context.createMarshaller();
-			marshaller.setProperty(Marshaller.JAXB_FORMATTED_OUTPUT, Boolean.TRUE);
-			marshaller.marshal(birds1, System.out);
-			marshaller.marshal(birds1, new File(url + "/Birds.xml"));
-		} catch (JAXBException e) {
-			LOGGER.warning("fail" + e.getMessage());
-		}
-	}
 }

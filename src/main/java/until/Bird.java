@@ -7,7 +7,7 @@ import javax.xml.bind.annotation.XmlRootElement;
 import commom.AddBirdOption;
 
 /**
- * {@link Bird}.java
+ *Bird.java
  * 
  * Version 1.0
  * 
@@ -39,7 +39,7 @@ public class Bird {
 	}
 
 	public Bird() {
-		// TODO Auto-generated constructor stub
+		super();
 	}
 
 	public String getName() {
@@ -69,5 +69,22 @@ public class Bird {
 
 	public static Bird create(AddBirdOption bOption) {
 		return new Bird(bOption.getName(), bOption.getColor(), bOption.getHeight(), bOption.getWeight());
+	}
+	public String printf(){
+		return "-----------------------"+ "\n|Name| "+ "|Color| "+"|Height| "+"|Weight| "
+	+ "\n" + " "+getName() +" "+ getColor() +" "+ getHeight() +" "+ getWeight()+"\n-------------------";
+		
+	}
+
+	public String getColor() {
+		return color;
+	}
+
+	public String getWeight() {
+		return weight;
+	}
+
+	public String getHeight() {
+		return height;
 	}
 }
